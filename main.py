@@ -1,6 +1,6 @@
 import discord
 import json
-from bot_functions import extract_ctf_data, search_ctf_data, create_private_channel, get_category_by_id, get_channel_by_name, reply_message, search_event_data
+from bot_functions import extract_ctf_data, search_ctf_data, create_private_channel, get_category_by_id, get_channel_by_name, reply_message, search_event_data, send_event_info
 from discord.ext import commands
 from discord.utils import get
 import time
@@ -12,6 +12,7 @@ with open('conf.json') as conf_file:
 # Extract token from JSON
 TOKEN = conf['DISCORD_TOKEN'] # discord token
 CTFTIME_REFRESH_TIME = conf['CTFTIME_REFRESH_TIME'] # number of seconds between each refresh of the ctftime data (about once a day is good enough)
+DISCORD_GUILD_ID = conf['DISCORD_GUILD_ID']
 
 UPCOMING_CTFTIME_FILE = conf['UPCOMING_CTFTIME_FILE']
 ONGOING_CTFTIME_FILE = conf['ONGOING_CTFTIME_FILE']
@@ -232,16 +233,7 @@ async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
     with open(EVENT_LOG_FILE, 'w') as file:
         json.dump(EVENTS_DATA, file, indent=4)
             
-    # TODO FROM HERE
-    embeded_message = discord.Embed(
-            title="CTF INFORMATION",
-            description=f"Here are the information on the {event_info['name']} event.",  # Description of the embed
-            color=discord.Color.dark_gold(), # Color of the side bar (you can change the color)
-            # timestamp=event_info['date']
-        )
-    
-    embeded_message.set_author(name=event_info['name'], url=event_info['link'])
-    embeded_message.add_field(name="ici il y aura toute les infos (pas encore add pcq flemme)", value="YES")
+    embeded_message = await send_event_info(event_info=event_info, id=0)
 
     await private_channel.send(embed=embeded_message)
 
@@ -257,22 +249,12 @@ async def add_reaction_and_channel(ctx):
     for role in roles:
         if str(role).lower() == str(channelrolename):
             event_info = await search_event_data(EVENT_LOG_FILE, role)
-            print(event_info)
     
     if event_info is None:
         await ctx.send("No info could be found for this channel. make sure you are using this command in one of the CTF event channel.")
         return None
     
-    # TODO FROM HERE
-    embeded_message = discord.Embed(
-            title="CTF INFORMATION",
-            description=f"Here are the information on the {event_info['name']} event.",  # Description of the embed
-            color=discord.Color.blurple(), # Color of the side bar (you can change the color)
-            # timestamp=event_info['date']
-        )
-    
-    embeded_message.set_author(name=event_info['name'], url=event_info['link'])
-    embeded_message.add_field(name="ici il y aura toute les infos (pas encore add pcq flemme)", value="YES")
+    embeded_message = await send_event_info(event_info=event_info, id=1)
 
     await ctx.send(embed=embeded_message)
         
@@ -290,7 +272,9 @@ async def add_reaction_and_channel(ctx):
 
 
 
-
+@bot.command(name="BATMAN")
+async def testfunc(ctx):
+    await ctx.send(f"https://cdn.discordapp.com/attachments/1021532723661254707/1297666663407423609/Joker_caught_a_Pokemon.mp4?ex=6716c1c2&is=67157042&hm=2df40f38c86a189ac74125e7b0e81798dd2d8909dc355355cdaba0adf6c53ff8&")
 
 
 
