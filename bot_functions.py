@@ -177,3 +177,71 @@ async def search_event_data(filename, role: discord.Role):
                 return event[role.name] #returns the information about the CTF
 
     return None
+
+from datetime import datetime
+
+async def send_event_info(event_info, id: int):
+
+    # Split the start and end times using the "—" symbol & set the date format
+    print(event_info['date'])
+    time_range = event_info['date'].split(" — ")
+    start_date_format = "%d %b., %H:%M %Z"
+    end_date_format = "%d %b. %Y, %H:%M %Z"  # When the year is included in the end date
+
+    try:
+        end_time = datetime.strptime(time_range[1], end_date_format)
+        
+        start_time = datetime.strptime(time_range[0], start_date_format)
+        start_time = start_time.replace(year=end_time.year)
+
+        print(start_time, end_time)
+
+        duration = end_time - start_time
+        duration_hours = duration.total_seconds() // 3600
+        duration_str = f"{int(duration_hours)} hours"
+
+        # Get the current time
+        current_time = datetime.now()
+
+        # Calculate event status based on current time
+        if current_time < start_time:
+            # Event hasn't started yet, calculate time until start
+            time_until_start = start_time - current_time
+            hours_until_start = time_until_start.total_seconds() // 3600
+            minutes_until_start = (time_until_start.total_seconds() % 3600) // 60
+            status_str = f"Starts in {int(hours_until_start)} hours and {int(minutes_until_start)} minutes"
+        
+        elif start_time <= current_time < end_time:
+            # Event has started, calculate time left until it ends
+            time_left = end_time - current_time
+            hours_left = time_left.total_seconds() // 3600
+            minutes_left = (time_left.total_seconds() % 3600) // 60
+            status_str = f"{int(hours_left)}hrs & {int(minutes_left)}min left"
+        
+        else:
+            # Event is over
+            status_str = "Event is over"
+
+    except (ValueError, IndexError):
+        duration_str = "N/A" 
+
+    # Set up the embedded message
+    color = discord.Color.dark_gold() if not id else discord.Color.blurple() # if id 0 then dark_gold, else blurple()
+    embeded_message = discord.Embed(
+        title=f"__{event_info['name']}__", 
+        url=event_info['link'],
+        description=f"Here are the information on {event_info['name']}.",
+        color=color
+    )
+    
+    embeded_message.set_author(name="CTF INFORMATION", url=event_info['link'])
+    embeded_message.add_field(name="Weight", value=f"**{event_info['weight']}**", inline=True)
+    embeded_message.add_field(name="Location", value=f"**{event_info['location']}**", inline=True)
+    embeded_message.add_field(name="Format", value=f"**{event_info['format']}**", inline=True)
+    embeded_message.add_field(name="Start time", value=f"**{start_time}**", inline=True)
+    embeded_message.add_field(name="End time", value=f"**{end_time}**", inline=True)
+    embeded_message.add_field(name="Duration", value=f"**{duration_str}**", inline=True)
+    embeded_message.add_field(name="Status", value=f"**{status_str}**", inline=False)
+    embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
+
+    return embeded_message
