@@ -1,0 +1,22 @@
+{
+    "DISCORD_TOKEN": "XXX",
+    "DISCORD_GUILD_ID": your server's ID,  
+    
+
+    "UPCOMING_CTFTIME_FILE": "log/ctftime.json",
+    "ONGOING_CTFTIME_FILE": "log/nowrunning.json",
+    "EVENT_LOG_FILE": "log/ctf_events.json",
+
+    "CTFTIME_REFRESH_TIME": 14400,
+    "WEIGHT_RANGE": 4,
+    "MAX_EVENT_LIMIT": 10,
+
+    "CTF_CHANNEL_CATEGORY_ID": { 
+        "ServerName": thecategoryID you want the bot to create channels to
+    },
+
+    "CTF_JOIN_CHANNEL" : {
+        "ServerName": the ID of the channel in which the bot will send the message to join a CTF
+    }
+
+}
