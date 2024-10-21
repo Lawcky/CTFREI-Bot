@@ -1,15 +1,15 @@
 # CTFREI-Bot
-A discord bot made for CTF related activities, can manage events, tell the upcoming &amp; ongoing CTFs, and keep track of Root-Me scores.
+A discord bot made for CTF related activities.
 
-## a discord bot that can :
 
-- fetch & display the next upcoming CTF (ctftime) based on time, weight, name... DONE 
+for now it can manage events & channels, tell the upcoming &amp; ongoing CTFs, keep an history of events.
 
-- display root-me info, create a scoreboard, maybe add a weekly/monthly update to RM score changes for all users
+i'll add : 
+- a root-me scoreboard & weekly to monthly folowing of score changes.
+- a way to manually add an event that is not on ctftime without having to change json files
+- cleaner interface 
+- use of CTFtime api instead of scraping 
+- support for discord / commands
 
-- we give him a "channel category" and a bot channel, anyone can give him info about a upcomming CTF and he'll automatically register the info, create the channel and when prompted will print the info of each CTF in the related channel. IN THE MAKING
 
-- offer the possibility to rate a CTF after on 4 level : Chad, Nice, Ok-tier, indianCTF
-
-- hold a DB of past CTF & grades given to it by players 
 
