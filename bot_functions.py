@@ -2,9 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import discord
 import json
+from datetime import datetime
 
-
-# retrive the upcoming CTF events and data
+# retrive the upcoming CTF events and data, this is a scraping function, will be later changed for API calls
 async def extract_ctf_data(url, filename):
     try:
         headers = {
@@ -111,8 +111,6 @@ async def search_ctf_data(filename, query, WEIGHT_RANGE):
 
         return match
 
-
-
 # Create a private text channel in the specified category for the role
 async def create_private_channel(guild, category: discord.CategoryChannel, role: discord.Role):
     
@@ -159,7 +157,7 @@ def get_category_by_id(guild: discord.Guild, category_id: int):
             return category
     return None
 
-# will check if the channel name already exists (to make sure channels are not created everywhere)
+# will check if the channel name already exists (to make sure channels are not beeing doubled)
 def get_channel_by_name(guild: discord.Guild, channelname: str):
     
     for channel in guild.channels:
@@ -167,6 +165,7 @@ def get_channel_by_name(guild: discord.Guild, channelname: str):
             return channel
     return None
 
+# retrieve the data of an event using the discord role associated to it (not case sensitive)
 async def search_event_data(filename, role: discord.Role):
     with open(filename, 'r') as events_file:
         events_data = json.load(events_file)
@@ -178,8 +177,7 @@ async def search_event_data(filename, role: discord.Role):
 
     return None
 
-from datetime import datetime
-
+# creates & returns an embedded message based on the event_info given (in the format of ctf_events.json), the integer is to differenciate the color. 
 async def send_event_info(event_info, id: int):
 
     # Split the start and end times using the "—" symbol & set the date format
