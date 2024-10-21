@@ -38,11 +38,10 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 async def on_ready():
     await bot.tree.sync()
     print(f'Logged in as {bot.user}')
-
-
 #
 #   CTFTIME RELATED COMMANDS
 #
+#list all the CTF competitions that are upcoming based on the CTFTIME data
 @bot.command(name="upcoming")
 async def upcoming_ctf(ctx, max_events: int = MAX_EVENT_LIMIT):
     global last_refresh_upcoming, UPCOMING_CTFTIME_FILE
@@ -138,10 +137,20 @@ async def search_json(ctx, query: str = None):
         message = f"**{match['name']}** | {match['weight']} ---> *{match['link']}*\n"
         await ctx.send(message)
 
+# to be added
+@bot.command(name="refresh")
+async def add_reaction_and_channel(ctx):
+    await ctx.send("not yet implemented, this will be a special command to allow for refresh of the known upcoming & ongoing CTF events.")
 #
 #  CHANNEL & ROLE MANAGEMENT RELATED COMMANDS
 #
+# to be added
+@bot.command(name="add")
+async def add_reaction_and_channel(ctx):
+    await ctx.send("not yet implemented, this will allow to add CTF events that are not inside the CTFtime data.")
 
+# quickly add a channel, role, and data about a specified CTF event, the event NEEDS to be able to be found by the /search endpoint, and the other string you'll give will be used
+# to create the role and the channel's name (the channels adds a "🚩-" before the string)
 @bot.command(name="quickadd")
 async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
 
@@ -237,7 +246,7 @@ async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
 
     await private_channel.send(embed=embeded_message)
 
-
+# retrieves and prints out the info on a channel's CTF, currently using the name of the channel minus the first 2 char, need to be changes to use the channel's id instead.
 @bot.command(name="info")
 async def add_reaction_and_channel(ctx):
     global EVENT_LOG_FILE
@@ -263,28 +272,13 @@ async def add_reaction_and_channel(ctx):
     # print(event_info)
     # search_event_data(EVENT_LOG_FILE, ctx.channel.name)
 
-
-
-
-
-
-
-
-
-
 @bot.command(name="BATMAN")
 async def testfunc(ctx):
     await ctx.send(f"https://cdn.discordapp.com/attachments/1021532723661254707/1297666663407423609/Joker_caught_a_Pokemon.mp4?ex=6716c1c2&is=67157042&hm=2df40f38c86a189ac74125e7b0e81798dd2d8909dc355355cdaba0adf6c53ff8&")
 
-
-
-
-
-
 @bot.command(name="GET_DATA")
 async def testfunc(ctx):
     print(f"{ctx.guild.name}")
-
 
 @bot.command(name="test")
 async def testfunc(ctx):
@@ -294,8 +288,6 @@ async def testfunc(ctx):
 #
 #   TROLL
 #
-
-
 @bot.command(name="yvain")
 async def yvain_man(ctx):
     await ctx.send('https://images-ext-1.discordapp.net/external/OBPLGRvgM9BbzOFYV-GHXm9pbjjeXFYxR3IbQ73SYxo/https/media.tenor.com/2GXG2TIZ35MAAAPo/noryoz-owa-owa.mp4')
