@@ -1,6 +1,6 @@
 import discord
 import json
-from bot_functions import extract_ctf_data, search_ctf_data, create_private_channel, get_category_by_id, get_channel_by_name, reply_message, search_event_data, send_event_info
+from bot_functions import extract_ctf_data, search_ctf_data, create_private_channel, get_category_by_id, get_channel_by_name, reply_message, search_event_data, send_event_info, api_call
 from discord.ext import commands
 from discord.utils import get
 import time
@@ -11,7 +11,6 @@ with open('conf.json') as conf_file:
     conf = json.load(conf_file)
 # Extract token from JSON
 TOKEN = conf['DISCORD_TOKEN'] # discord token
-CTFTIME_REFRESH_TIME = conf['CTFTIME_REFRESH_TIME'] # number of seconds between each refresh of the ctftime data (about once a day is good enough)
 DISCORD_GUILD_ID = conf['DISCORD_GUILD_ID']
 
 UPCOMING_CTFTIME_FILE = conf['UPCOMING_CTFTIME_FILE']
@@ -47,15 +46,8 @@ async def upcoming_ctf(ctx, max_events: int = MAX_EVENT_LIMIT):
     global last_refresh_upcoming, UPCOMING_CTFTIME_FILE
     
     max_events -= 1 # when asked for 5 will print 5 instead of 6
-    
-    timestamps = int(time.time())
-    if ((last_refresh_upcoming + CTFTIME_REFRESH_TIME) > timestamps): # if the last time it was fetched + the given delay is more than the actual timestamp a new parsing is done to refresh the data 
-        events = await extract_ctf_data("https://ctftime.org/event/list/upcoming", UPCOMING_CTFTIME_FILE)
-        last_refresh_upcoming = timestamps
-    else:
-        # Load already parsed data
-        with open(UPCOMING_CTFTIME_FILE) as data_file:
-            events = json.load(data_file)
+    with open(UPCOMING_CTFTIME_FILE) as data_file:
+        events = json.load(data_file)
 
     embeded_message = discord.Embed(
             title="Upcoming CTF Events",  # Title of the embed
@@ -66,33 +58,37 @@ async def upcoming_ctf(ctx, max_events: int = MAX_EVENT_LIMIT):
 
     count = 0 # variable to limit the amount of output per message (discord limits)
     for event in events: 
-        if (event['location'] == 'On-line'):
+        if (event['location'] == ''):
 
             event_info = f"Weight: {event['weight']} | {event['format']}" # format for the output of the CTF upcoming lists for each event
-            embeded_message.add_field(name=event['name'], value=event_info, inline=False)
+            embeded_message.add_field(name=event['title'], value=event_info, inline=False)
             
             count += 1
 
         if (count > max_events):
             break
     
-    embeded_message.add_field(name="Note", value="For more event use /upcoming {number}, or you can learn more about a specific event using /search {name of the event}", inline=False)
+    embeded_message.set_footer(text="For more event use /upcoming {number}, or you can learn more about a specific event using /search {name of the event}")
 
     await ctx.send(embed=embeded_message)
 
-#list all the CTF competitions that are currently running
+# works well
+@bot.command(name="refresh")
+async def refresh_data(ctx):
+
+    data = api_call("https://ctftime.org/api/v1/events/?limit=100", UPCOMING_CTFTIME_FILE)
+
+    if data is not None:
+        await ctx.send(f"events have been updated up to {str(data[-1]['finish'])[:10:]}")
+    else: 
+        await ctx.send(f"Error updating.")
+
+#list all the CTF competitions that are currently running # to be changed but not urgent
 @bot.command(name="ongoing")
 async def ongoing_ctf(ctx):
-    global last_refresh_ongoing, ONGOING_CTFTIME_FILE
-    
-    timestamps = int(time.time())
-    if ((last_refresh_ongoing + CTFTIME_REFRESH_TIME) > timestamps): # if the last time it was fetched + the given delay is more than the actual timestamp a new parsing is done to refresh the data 
-        events = await extract_ctf_data("https://ctftime.org/event/list/?now=true", ONGOING_CTFTIME_FILE)
-        last_refresh_ongoing = timestamps
-    else:
-        # Load already parsed data
-        with open(ONGOING_CTFTIME_FILE) as data_file:
-            events = json.load(data_file)
+    global ONGOING_CTFTIME_FILE
+
+    events = await extract_ctf_data("https://ctftime.org/event/list/?now=true", ONGOING_CTFTIME_FILE) #deprecated in the other functions but whatever works fine for this
 
     embeded_message = discord.Embed(
             title="Ongoing CTF Events",  # Title of the embed
@@ -100,9 +96,9 @@ async def ongoing_ctf(ctx):
             color=discord.Color.green()  # Color of the side bar (you can change the color)
         )
 
-    count = 0 # variable to limit the amount of output per message (discord limits)
+    count = 0 # variable to limit the amount of output per message (discord limits to avoid crash)
     for event in events: 
-        event_info = f"Weight: {event['weight']} | location -> {event['location']} | {event['format']}" # format for the output of the CTF upcoming lists for each event
+        event_info = f"Weight: {event['weight']} | location -> {event['location']} | {event['format']}\n{event['link']}" # format for the output of the CTF upcoming lists for each event
         embeded_message.add_field(name=event['name'], value=event_info, inline=False)
         
         count += 1
@@ -110,7 +106,7 @@ async def ongoing_ctf(ctx):
         if (count > MAX_EVENT_LIMIT):
             break
     
-    embeded_message.add_field(name="Note", value="you can learn more about a specific event using /search {name of the event}", inline=False)
+    embeded_message.set_footer(text="you can learn more about a specific event using /search {name of the event}")
 
     await ctx.send(embed=embeded_message)
 
@@ -124,29 +120,28 @@ async def search_json(ctx, query: str = None):
 
     # check if files exists and arent empty, if either is true it'll start the parsing of the site
     if (not p.isfile(UPCOMING_CTFTIME_FILE) or p.getsize(UPCOMING_CTFTIME_FILE) == 0):
-        await extract_ctf_data("https://ctftime.org/event/list/upcoming", UPCOMING_CTFTIME_FILE)
-    if (not p.isfile(ONGOING_CTFTIME_FILE) or p.getsize(ONGOING_CTFTIME_FILE) == 0):
-        await extract_ctf_data("https://ctftime.org/event/list/?now=true", ONGOING_CTFTIME_FILE)
+        await  api_call("https://ctftime.org/api/v1/events/?limit=100", UPCOMING_CTFTIME_FILE)
+    # if (not p.isfile(ONGOING_CTFTIME_FILE) or p.getsize(ONGOING_CTFTIME_FILE) == 0): #(Optionnal) to be able to search through already running CTFs
+    #     await extract_ctf_data("https://ctftime.org/event/list/?now=true", ONGOING_CTFTIME_FILE)
 
     matches = await search_ctf_data(UPCOMING_CTFTIME_FILE, query, WEIGHT_RANGE)
     #add msg here
-    matches += await search_ctf_data(ONGOING_CTFTIME_FILE, query, WEIGHT_RANGE)
+    # matches += await search_ctf_data(ONGOING_CTFTIME_FILE, query, WEIGHT_RANGE) # uncomment this if you activated the search through already running CTFs
     # add msg here
 
     for match in matches: # too long makes it crash
-        message = f"**{match['name']}** | {match['weight']} ---> *{match['link']}*\n"
+        print(match)
+        message = f"**{match['title']}** | {match['weight']} ---> *{match['url']}*\n"
         await ctx.send(message)
+    if not matches:
+       await ctx.send("no event could be found.\nRemember: \n-if there are spaces write between \" \".\n-search command does not look for currently running CTFs by default.\n for more info on a specific CTF go on the related channel and enter /info.") 
 
-# to be added
-@bot.command(name="refresh")
-async def add_reaction_and_channel(ctx):
-    await ctx.send("not yet implemented, this will be a special command to allow for refresh of the known upcoming & ongoing CTF events.")
-#
+
 #  CHANNEL & ROLE MANAGEMENT RELATED COMMANDS
 #
 # to be added
 @bot.command(name="add")
-async def add_reaction_and_channel(ctx):
+async def add(ctx):
     await ctx.send("not yet implemented, this will allow to add CTF events that are not inside the CTFtime data.")
 
 # quickly add a channel, role, and data about a specified CTF event, the event NEEDS to be able to be found by the /search endpoint, and the other string you'll give will be used
@@ -161,14 +156,14 @@ async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
         EVENTS_DATA = json.load(file)
 
     
-    category = get_category_by_id(ctx.guild, category_id=CTF_CHANNEL_CATEGORY_ID[ctx.guild.name]) # use the name of the server to look for the category id in which he'll create the channel (to be setup in conf.json)
+    category = get_category_by_id(guild=ctx.guild, category_id=CTF_CHANNEL_CATEGORY_ID[ctx.guild.name]) # use the name of the server to look for the category id in which he'll create the channel (to be setup in conf.json)
 
-    CTF_EVENT = await search_ctf_data(UPCOMING_CTFTIME_FILE, ctf_name, WEIGHT_RANGE) # look for the CTF in the upcoming list
-    #CTF_EVENT += await search_ctf_data(ONGOING_CTFTIME_FILE, ctf_name, WEIGHT_RANGE) # (Optional) look for CTFs in the Ongoing list
+    CTF_EVENT = await search_ctf_data(filename=UPCOMING_CTFTIME_FILE, query=ctf_name, WEIGHT_RANGE=WEIGHT_RANGE) # look for the CTF in the upcoming list
+    #CTF_EVENT += await search_ctf_data(filename=ONGOING_CTFTIME_FILE, query=ctf_name, WEIGHT_RANGE=WEIGHT_RANGE) # (Optional) look for CTFs in the Ongoing list
 
     # makes sure 1 CTF will be registered for the channel
     if not CTF_EVENT: 
-        await ctx.send(f"Error : no CTF found, please use the /search to make sure your send a valid CTF for this channel (between \" \").")
+        await ctx.send(f"Error : no CTF found, please use the /search to make sure you send a valid CTF name for this command (between \" \").")
         return None
     elif len(CTF_EVENT) > 1 :
         await ctx.send(f"Error : more than one CTF was found, please use the /search to make sure you only send 1 CTF for this channel (between \" \").")
@@ -221,17 +216,31 @@ async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
 
     private_channel = await create_private_channel(ctx.guild, category, role)
 
+
+    # print(CTF_EVENT)
+
     CTF_EVENT = {
         role.name: {
-            "name": CTF_EVENT[0]['name'],
+            # event info
+            "title": CTF_EVENT[0]['title'],
             "weight": CTF_EVENT[0]['weight'],
-            "link": CTF_EVENT[0]['link'],
-            "date": CTF_EVENT[0]['date'],
+            "url": CTF_EVENT[0]['url'],
+            "ctftime_url": CTF_EVENT[0]['ctftime_url'],
+            "start": CTF_EVENT[0]['start'],
+            "finish": CTF_EVENT[0]['finish'],
+            "duration": CTF_EVENT[0]['duration'],
             "format": CTF_EVENT[0]['format'],
             "location": CTF_EVENT[0]['location'],
+            "logo": CTF_EVENT[0]['logo'],
+            "description": CTF_EVENT[0]['description'],
+            "onsite": CTF_EVENT[0]['onsite'],
+
+            # personal info
             "add_type": "Quick_Add",
-            "channelID": private_channel.id,
-            "join_message_id": message.id
+            "is_over_now": False,
+            "is_votable_now": False,
+            "channelID": private_channel.id, # the channel dedicated to this CTF
+            "join_message_id": message.id # the message that was sent to join it
         }
     }
     EVENTS_DATA.append(CTF_EVENT)
@@ -246,19 +255,48 @@ async def add_reaction_and_channel(ctx, role_name: str, ctf_name: str):
 
     await private_channel.send(embed=embeded_message)
 
-# retrieves and prints out the info on a channel's CTF, currently using the name of the channel minus the first 2 char, need to be changes to use the channel's id instead.
+# DEPRECATED
+# @bot.command(name="info")
+# async def get_info(ctx):
+#     global EVENT_LOG_FILE
+
+#     channelrolename = ctx.channel.name[2::] # since the channel are created by "🚩-" + the role we can retrieve the role like this (but its lowercase)
+#     roles = ctx.guild.roles # an array of all the roles of the server
+#     event_info = None # var for the data
+
+#     for role in roles:
+#         if str(role).lower() == str(channelrolename):
+#             event_info = await search_event_data(EVENT_LOG_FILE, role)
+    
+#     if event_info is None:
+#         await ctx.send("No info could be found for this channel. make sure you are using this command in one of the CTF event channel.")
+#         return None
+    
+#     embeded_message = await send_event_info(event_info=event_info, id=1)
+
+#     await ctx.send(embed=embeded_message)
+  
+#     return None
+
+
 @bot.command(name="info")
-async def add_reaction_and_channel(ctx):
+async def get_info(ctx):
     global EVENT_LOG_FILE
 
-    channelrolename = ctx.channel.name[2::] # since the channel are created by "🚩-" + the role we can retrieve the role like this (but its lowercase)
-    roles = ctx.guild.roles # an array of all the roles of the server
+    with open(EVENT_LOG_FILE, 'r') as data:
+        EVENTS_DATA = json.load(data)
+
+    id = ctx.channel.id 
     event_info = None # var for the data
 
-    for role in roles:
-        if str(role).lower() == str(channelrolename):
-            event_info = await search_event_data(EVENT_LOG_FILE, role)
-    
+    for event in EVENTS_DATA:
+        for role in event:
+
+            role_id = event[role]['channelID']
+            if int(id) == int(role_id):
+                event_info = event[role]
+
+
     if event_info is None:
         await ctx.send("No info could be found for this channel. make sure you are using this command in one of the CTF event channel.")
         return None
@@ -269,8 +307,7 @@ async def add_reaction_and_channel(ctx):
         
             
     return None
-    # print(event_info)
-    # search_event_data(EVENT_LOG_FILE, ctx.channel.name)
+
 
 @bot.command(name="BATMAN")
 async def testfunc(ctx):
@@ -280,10 +317,13 @@ async def testfunc(ctx):
 async def testfunc(ctx):
     print(f"{ctx.guild.name}")
 
+
+
+import datetime
 @bot.command(name="test")
 async def testfunc(ctx):
-    channelID = CTF_JOIN_CHANNEL[str(ctx.guild.name)]
-    print(channelID)
+    test = datetime.datetime.now().timestamp()
+    print(test)
 
 #
 #   TROLL
