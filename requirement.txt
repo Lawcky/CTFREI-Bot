@@ -1,5 +1,4 @@
 discord
 requests
 bs4
-time
 discord-py-slash-command
