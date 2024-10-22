@@ -1,0 +1,34 @@
+[
+    {
+        "organizers": [
+            {
+                "id": 270138,
+                "name": "Crispr_iiitn"
+            }
+        ],
+        "ctftime_url": "https://ctftime.org/event/2524/",
+        "ctf_id": 997,
+        "weight": 0.0,
+        "duration": {
+            "hours": 0,
+            "days": 1
+        },
+        "live_feed": "",
+        "logo": "",
+        "id": 2524,
+        "title": "EngimaXplore2.0 2024",
+        "start": "2024-10-24T12:29:59+00:00",
+        "participants": 31,
+        "location": "",
+        "finish": "2024-10-25T12:30:00+00:00",
+        "description": "EnigmaXplore will be a cyber security competition- Jeopardy Style,  for participants to show their skills in various areas of computing and solve real-life security challenges.\r\n\r\nGuidelines:\r\n\r\nIt\u2019s a 24 hr online live time event, having challenges from different categories like Reverse Engineering, Binary Exploitation, Forensics, Web Exploitation, cryptography etc.\r\nHosted on  CTFd  platform.\r\nEach category would have at least 2-3 challenges of difficulty ranging from Easy to Hard level.\r\nProblems will be visible at the start of the competition.\r\nTeams of 1-3 members are allowed.\r\n",
+        "format": "Jeopardy",
+        "is_votable_now": false,
+        "prizes": "25 K INR ",
+        "format_id": 1,
+        "onsite": false,
+        "restrictions": "Open",
+        "url": "https://unstop.com/hackathons/engimaxplore-20-ctf-tantrafiesta24-iiit-nagpur-1153719",
+        "public_votable": true
+    }
+]
