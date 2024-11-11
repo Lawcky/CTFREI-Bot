@@ -2,14 +2,8 @@
 A discord bot made for CTF related activities.
 
 
-for now it can manage events & channels, tell the upcoming &amp; ongoing CTFs, keep an history of events.
+for now it can manage events & channels, tell the upcoming CTF, keep an history of events... (not updated yet)
 
-i'll add : 
-- a root-me scoreboard & weekly to monthly folowing of score changes.
-- a way to manually add an event that is not on ctftime without having to change json files
-- cleaner interface 
-- use of CTFtime api instead of scraping 
-- support for discord / commands
+the code is not totally working for now.. i'll fix it when i have time (ongoing & info are totally broken due to new file system)
 
-
-
+once its ran it'll create himself the directories & file needed, make sure to give bot_functions.py, main.py and a conf.json file (to get the data to put in conf.json just put your token and discord server ID and do /setup in the main channel the bot will use)
