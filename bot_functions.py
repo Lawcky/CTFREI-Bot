@@ -3,6 +3,24 @@ from bs4 import BeautifulSoup
 import discord
 import json
 from datetime import datetime
+from os import path as p, mkdir, scandir
+import hashlib
+
+#generate md5 hash and keeps 8 char (used to have a unique ID on the Events to avoid dupplicates)
+def generate_unique_id(CTFname: str):
+    unique_id = (hashlib.md5(CTFname.encode()).hexdigest())[:8]
+    return unique_id
+
+def list_directory_contents(directory):
+    try:
+        contents = list(scandir(directory))
+        return [item.name for item in contents]
+    except FileNotFoundError:
+        print(f"The directory '{directory}' was not found.")
+        return []
+    except PermissionError:
+        print(f"You don't have permission to access the directory '{directory}'.")
+        return []
 
 # retrive the upcoming CTF events and data, this is a scraping function, will be later changed for API calls
 async def extract_ctf_data(url, filename):
@@ -46,7 +64,7 @@ async def extract_ctf_data(url, filename):
 
             # Add the extracted data to the list
             ctf_data.append({
-                'name': event_name,
+                'title': event_name,
                 'date': event_date,
                 'format': event_format,
                 'location': event_location,
@@ -54,9 +72,6 @@ async def extract_ctf_data(url, filename):
                 'notes': event_notes,
                 'link': 'https://ctftime.org' + event_link # recreate the link
             })
-
-        # this is to save data so that you dont spam the website with useless requests
-        # you can customize the refresh timing in conf.json
 
         with open(filename, 'w') as json_file:
             json.dump(ctf_data, json_file, indent=4)
@@ -67,6 +82,13 @@ async def extract_ctf_data(url, filename):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
+def register_new_event(ctx: discord.Integration, CURRENT_CTF_DIR: str, data: json):
+    if (not p.isdir(f"{CURRENT_CTF_DIR}{ctx.guild.id}")):
+        mkdir(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
+
+
+   
     
 #look inside the Json data files for match
 async def search_ctf_data(filename, query, WEIGHT_RANGE):
@@ -127,9 +149,9 @@ async def search_ctf_data(filename, query, WEIGHT_RANGE):
         return match
 
 # Create a private text channel in the specified category for the role
-async def create_private_channel(guild, category: discord.CategoryChannel, role: discord.Role):
+async def create_private_channel(guild: discord.guild, category: discord.CategoryChannel, role: discord.Role):
     
-    CTFREI_role = discord.utils.get(guild.roles, name="CTFREI")  # Get the CTFREI role
+    CTFREI_role = discord.utils.get(guild.roles, name="CTFREI")  # Get the CTFREI role to make sure the bot can access the channel
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),  # Deny access to everyone
@@ -141,19 +163,18 @@ async def create_private_channel(guild, category: discord.CategoryChannel, role:
 
     return private_channel
 
-#retrieve a message and reply to it
-async def reply_message(ctx, channel: discord.TextChannel, message_id: int, response: str):
+#retrieve a message by its id and reply to it with a given String
+async def reply_message(ctx: discord.integrations, channel: discord.TextChannel, message_id: int, response: str):
 
     if channel is None:
         await ctx.send("Error finding the join channel")
         print("Channel not found.")
-        return
-
+        return None
     try:
         message = await channel.fetch_message(message_id)
-
         await message.reply(response)
         return 1
+    
     except discord.NotFound:
         await ctx.send("Error finding the actual message")
         return None
@@ -164,7 +185,7 @@ async def reply_message(ctx, channel: discord.TextChannel, message_id: int, resp
         await ctx.send("Something went wrong while fetching the message.")
         return None
 
-# will retrieve a channel's category based on its ID (to make sure channels are not created everywhere)
+# Retrieve a discord.Category based on the settings' ID (to make sure channels are not created anywhere)
 def get_category_by_id(guild: discord.Guild, category_id: int):
     
     for category in guild.categories:
@@ -172,16 +193,15 @@ def get_category_by_id(guild: discord.Guild, category_id: int):
             return category
     return None
 
-# will check if the channel name already exists (to make sure channels are not beeing doubled)
+# Check if the channel name already exists (to make sure channels are not beeing doubled)
 def get_channel_by_name(guild: discord.Guild, channelname: str):
-    
     for channel in guild.channels:
         if channel.name == channelname:
             return channel
     return None
 
 # retrieve the data of an event using the discord role associated to it (not case sensitive)
-async def search_event_data(filename: str, role: str):
+async def search_event_data_by_role(filename: str, role: str):
     with open(filename, 'r') as events_file:
         events_data = json.load(events_file)
 
@@ -192,28 +212,27 @@ async def search_event_data(filename: str, role: str):
 
     return None
 
-# creates & returns an embedded message based on the event_info given (in the format of ctf_events.json), the integer is to differenciate the color. 
+
+
+# creates & returns an embedded message based on the event_info given (in the format of ctf_events.json), the integer is to differenciate the color/format. 
 async def send_event_info(event_info, id: int):
 
     # Retrieve start, finish, and duration from event_info
-    start_time = datetime.fromisoformat(event_info['start'])  # ISO format to datetime
-    end_time = datetime.fromisoformat(event_info['finish'])   # ISO format to datetime
+    start_time = datetime.fromisoformat(event_info['start'])
+    end_time = datetime.fromisoformat(event_info['finish'])
     duration_days = event_info['duration'].get('days', 0)
     duration_hours = event_info['duration'].get('hours', 0)
-
-    # Combine duration to a single string
     duration_str = f"{duration_days * 24 + duration_hours} hours"
 
-    # Format the start and end time as 'hrs:minutes days-month-year'
+    # Format the start and end time as 'days-month-year hrs:minutes'
     formatted_start_time = start_time.strftime('%d-%m-%Y %H:%M')
     formatted_end_time = end_time.strftime('%d-%m-%Y %H:%M')
     start = start_time.timestamp()
     end = end_time.timestamp()
     current = datetime.now().timestamp()
-    
-    # formatted_current_time = datetime.now().strftime('%d-%m-%Y %H:%M')
+     
     # Print times for reference
-    # print(f"Current Time: {formatted_current_time}")
+    # print(f"Current Time: {datetime.now().strftime('%d-%m-%Y %H:%M')}")
     # print(f"Start Time: {formatted_start_time}")
     # print(f"End Time: {formatted_end_time}")
 
@@ -257,9 +276,12 @@ async def send_event_info(event_info, id: int):
 
     return embeded_message
 
+
+
+# make an api call on a url and retrieves all the data, then put it in a file.
 def api_call(url, file):
     try:
-        url = "https://ctftime.org/api/v1/events/?limit=100"
+        # url = "https://ctftime.org/api/v1/events/?limit=100"
 
         headers = {
             'User-Agent': 'curl/7.68.0'  # Mimicking a curl request
