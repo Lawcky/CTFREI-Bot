@@ -1,26 +1,25 @@
 {
-    "DISCORD_TOKEN": "TOKEN",
-    "DISCORD_GUILD_ID": 0,  
+    "DISCORD_TOKEN": "",
+    "DISCORD_GUILD_ID": ,  
     
 
     "UPCOMING_CTFTIME_FILE": "log/api_event_data.json",
-    "ROLE_DICTIONNARY": "log/roledic.json",
     "EVENT_LOG_FILE": "log/ctf_events.json",
     "CURRENT_CTF_DIR": "log/current/",
     "PAST_CTF_DIR": "log/past/",
 
-
     "WEIGHT_RANGE": 4,
     "MAX_EVENT_LIMIT": 10,
 
-    
-
     "CTF_CHANNEL_CATEGORY_ID": { 
-        "SERVERNAME": 0,
+        "Server Name": ,
     },
 
     "CTF_JOIN_CHANNEL" : {
-        "SERVERNAME": 0,
-    }
+        "Server Name": ,
+    },
 
+    "ARCHIVE_CATEGORY": {
+        "Server Name": ,
+    }
 }
