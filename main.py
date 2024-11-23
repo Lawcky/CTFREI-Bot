@@ -1,12 +1,13 @@
 import discord
 import json
+import time
 from bot_functions import *
 from discord.ext import commands
 from discord.ui import Button, View
 from discord.utils import get
 from os import path as p
-from os import mkdir
-
+from os import mkdir, rename
+from typing import Literal
 
 """CONFIGURATION LOADING"""
 
@@ -33,7 +34,9 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="/", intents=intents)
 
 
+
 """EVENT REGISTRATION: FILE EDITING"""
+
 
 
 # allow to add an event to the current events on a server, needs a role name (str) and a ctf name (that can be found using /search)
@@ -164,6 +167,7 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
     await ctx.response.send_message("Event added successfully!", ephemeral=True)
     return None
 
+
 # refresh the list of upcoming CTFs (using CTFtime API's, reload up to 100 events)
 @bot.tree.command(name="refresh", description="A command to refresh the upcoming CTFs list.", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def refresh_data(ctx: discord.Interaction):
@@ -180,7 +184,9 @@ async def refresh_data(ctx: discord.Interaction):
         return 1
 
 
+
 """SEARCHING COMMANDS (GENERAL): NO FILE MODIFICATION"""
+
 
 
 # List all the upcoming CTFs based on the UPCOMING file
@@ -226,6 +232,7 @@ async def upcoming_ctf(ctx: discord.Interaction, max_events: int = MAX_EVENT_LIM
     await ctx.response.send_message(embed=embeded_message, ephemeral=True)
     return None
 
+
 # list all the files in the current events directory and prints some info
 @bot.tree.command(name="listevents", description="list all registered events on the current server.", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def list_registered_events(ctx: discord.Integration):
@@ -267,6 +274,7 @@ async def list_registered_events(ctx: discord.Integration):
     await ctx.response.send_message(embed=embeded_message, ephemeral=True)
     return None
 
+
 # # basically the listevents command with the PAST_CTF_DIR and some different text in embedded msg
 # @bot.tree.command(name="listpasts", description="List all past events on the current server (imperfect, to stay disabled).", guild=discord.Object(id=DISCORD_GUILD_ID))
 # async def list_pasts_events(ctx: discord.Integration):
@@ -306,6 +314,7 @@ async def list_registered_events(ctx: discord.Integration):
 #     embeded_message.set_footer(text="You can learn more about a past event by going on their respective channel and running /summary")
 
 #     await ctx.response.send_message(embed=embeded_message, ephemeral=True)
+
 
 #will search the upcoming files for matches, can use integer for weight search, for strings for name/tag search
 @bot.tree.command(name="search", description="Will search the data of the upcoming CTFs, query can be either an integer or a string.", guild=discord.Object(id=DISCORD_GUILD_ID))
@@ -359,34 +368,46 @@ async def search_registered_events(ctx: discord.Integration, event_id: str):
     for event_file in current_events:
         if event_id in event_file:
             with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}") as individual_event_file:
-                temp = json.load(individual_event_file)
-                full_data = [temp['title'], temp['weight'], temp['start'][:10:], temp['url'], temp['channelID'], temp['join_message_id'], temp['role_name'], temp['event_id'], temp['logo'], temp['finish'][:10:]]
+                full_data = json.load(individual_event_file)
+
 
 
 
     event_chan = ctx.guild.get_channel(CTF_JOIN_CHANNEL[ctx.guild.name])
 
-    message_link = f"https://discord.com/channels/{ctx.guild.id}/{event_chan.id}/{full_data[5]}"
+    message_link = f"https://discord.com/channels/{ctx.guild.id}/{event_chan.id}/{full_data['join_message_id']}"
 
     # Set up the embedded message
-    color = discord.Color.dark_teal() # if id 0 then dark_gold, else blurple()
+    color = discord.Color.dark_teal()
     embeded_message = discord.Embed(
-        title=f"__{full_data[0]}__", 
-        url=full_data[3],
-        description=f"Here are the information on {full_data[0]}.",
+        title=f"__{full_data['title']}__", 
+        url=full_data['url'],
+        description=f"Here are the information on {full_data['title']}.",
         color=color
     )
     
-    embeded_message.set_author(name="CTF INFORMATION", url=full_data[3])
-    embeded_message.add_field(name="Weight", value=f"**{full_data[1]}**", inline=True)
-    embeded_message.add_field(name="Starts:", value=f"**{full_data[2]}**", inline=True)
-    embeded_message.add_field(name="Ends:", value=f"**{full_data[9]}**", inline=True)
+    embeded_message.set_author(name="CTF INFORMATION", url=full_data['url'])
+    embeded_message.add_field(name="Weight", value=f"**{full_data['weight']}**", inline=True)
+    embeded_message.add_field(name="Starts:", value=f"**{full_data['start'][:10:]}**", inline=True)
+    embeded_message.add_field(name="Ends:", value=f"**{full_data['finish'][:10:]}**", inline=True)
     embeded_message.add_field(name="Joining:", value=f"**{message_link}**", inline=True)
-    embeded_message.add_field(name="CTF link:", value=f"**{full_data[3]}**", inline=True)
+    embeded_message.add_field(name="CTF link:", value=f"**{full_data['url']}**", inline=True)
 
-    embeded_message.set_image(url=full_data[8])
+    ctfrei_logo = "https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&"
+
+    embeded_message.set_thumbnail(url=full_data['logo']) if full_data['logo'] else embeded_message.set_thumbnail(url=ctfrei_logo)
+
+    embeded_message.set_image(url=ctfrei_logo)
 
     await ctx.response.send_message(embed=embeded_message, ephemeral=True)
+    
+    return None
+
+
+
+"""SEARCHING COMMANDS (CTFs channel): NO FILE MODIFICATION"""
+
+
 
 # displays info on current channel's CTF
 @bot.tree.command(name="info", description="displays info on current channel's CTF", guild=discord.Object(id=DISCORD_GUILD_ID))
@@ -415,50 +436,122 @@ async def get_info(ctx: discord.Interaction):
     return None
 
 
-
-"""ONGOING / TESTING / DEV"""
-
-# TO BE ADDED
-
-# displays more info on current channel's CTF
+# displays the description of the current channel's CTF
 @bot.tree.command(name="more", description="displays all info on current channel's CTF", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def get_more_info(ctx: discord.integrations):
-    print(1)
+    try:
+        channel_id = ctx.channel.id # used for search
+        event_data = []
+        event_list = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
+        for event_file in event_list:
+            if str(channel_id) in event_file:
+                with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}", 'r') as data:
+                    data = json.load(data)
+                    event_data.append(data['title'])
+                    event_data.append(data['description'])
+        if not event_data:
+            await ctx.response.send_message(f"No event could be found for this channel. please make sure you use this command in a CTF channel. (/listevents)", ephemeral=True)
+            return 1
+    except ValueError:
+        await ctx.response.send_message("Error retrieving the info.", ephemeral=True)
+        return 1
+    
+    await ctx.response.send_message(f"Here is the description of **{event_data[0]}**:\n{event_data[1]}", ephemeral=True)
+    return None
 
-# displays info on current channel's CTF
-@bot.tree.command(name="summary", description="displays info and grade on current channel's CTF", guild=discord.Object(id=DISCORD_GUILD_ID))
-async def event_summary(ctx: discord.integrations):
-    print(1)
+
+# allows to give a grade to an event between different possibilities
+@bot.tree.command(name="vote", description="start the vote for the CTF (only if over)", guild=discord.Object(id=DISCORD_GUILD_ID))
+async def event_democracy(ctx: discord.integrations, grade: Literal["Absolute Trash", "Not Worth", "OK tier", "Banger"]):
+    
+    """retrieve the CTF data (and users_vote if existing)"""
+
+    try:
+        channel_id = ctx.channel.id # used for search
+        event_list = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
+        for event_file in event_list:
+            if str(channel_id) in event_file:
+                with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}", 'r') as data:
+                    data = json.load(data)
+                    users_vote = data['users_vote']
+                    break
+        if not data:
+            await ctx.response.send_message(f"No event could be found for this channel. please make sure you use this command in a CTF channel. (/listevents) (you cannot vote for a CTF that was ended)", ephemeral=True)
+            return 1
+    except ValueError:
+        await ctx.response.send_message("Error retrieving the info.", ephemeral=True)
+        return 1
+    
+    """Set the users vote as grade's value"""
+    try:
+        users_vote[ctx.user.id] = grade
+        data['users_vote'] = users_vote
+
+        with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}", 'w') as file:
+            json.dump(data, file, indent=4)
+            
+        await ctx.response.send_message(f"Your vote has been registered ! ({grade})")
+        return None
+    
+    except ValueError:
+        await ctx.response.send_message("Error during the voting process.", ephemeral=True)
+        return 1
+
 
 # mark an event as over, cannot be done when event isnt over
 @bot.tree.command(name="end", description="End the CTF", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def end_event(ctx: discord.integrations):
+
+    """retrieve the data"""
+
+    try:
+        ARCHIVE_CATEGORY = conf['ARCHIVE_CATEGORY'][ctx.guild.name]
+
+        channel_id = ctx.channel.id # used for search
+        event_list = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
+        for event_file in event_list:
+            if str(channel_id) in event_file:
+                full_file_path= f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}"
+
+                with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}", 'r') as data:
+                    data = json.load(data)
+
+                break
+        if not full_file_path:
+            await ctx.response.send_message(f"No event could be found for this channel. please make sure you use this command in a CTF channel. (/listevents) (the event cannot be already over)", ephemeral=True)
+            return 1
+        
+        """Check if the event is actually over"""
+
+        end_time = datetime.fromisoformat(data['finish']).timestamp()
+        current = datetime.now().timestamp()
+
+        if end_time > current: # event is not over
+            await ctx.response.send_message(f"The Event is not over yet, if this is an error please contact an admin.", ephemeral=True)
+            return 1
+
+        """Move the file to PAST and move discord channel to the (optionnal)"""
+
+        rename(full_file_path, f"{PAST_CTF_DIR}{ctx.guild.id}/{event_file}_{int(time.time())}")
+
+        archive_category = get(ctx.guild.categories, id=ARCHIVE_CATEGORY)
+        await ctx.channel.edit(category=archive_category)
+        
+        await ctx.response.send_message("CTF was ended successfully.")
+        return None
+    except ValueError:
+        await ctx.response.send_message("Error retrieving the info.", ephemeral=True)
+        return 1
+
+# add here summary when done 
+
+"""ONGOING / TESTING / DEV"""
+
+# TO BE ADDED
+# Make a summary of a past event, (mostly /info with the amount of ppl that have the role in question, and the average grade given + number of vote)
+@bot.tree.command(name="summary", description="displays info and grade on current channel's CTF", guild=discord.Object(id=DISCORD_GUILD_ID))
+async def event_summary(ctx: discord.integrations):
     print(1)
-
-# allows to give a grade to an event between 4 levels (to set in conf.json)
-@bot.tree.command(name="vote", description="start the vote for the CTF (only if over)", guild=discord.Object(id=DISCORD_GUILD_ID))
-async def event_democracy(ctx: discord.integrations):
-    print(1)
-
-
-
-# TROLL AND DEV
-
-# JOKER DONT DO IT
-@bot.command(name="BATMAN")
-async def testfunc(ctx: discord.Interaction):
-    await ctx.send(f"https://cdn.discordapp.com/attachments/1021532723661254707/1297666663407423609/Joker_caught_a_Pokemon.mp4?ex=6716c1c2&is=67157042&hm=2df40f38c86a189ac74125e7b0e81798dd2d8909dc355355cdaba0adf6c53ff8&")
-
-@bot.tree.command(name="test")
-async def testfunc(ctx: discord.Interaction):
-    print(f"{dir(ctx)} \n\n {dir(ctx.message)}")
-
-@bot.command(name="yvain")
-async def yvain_man(ctx: discord.Interaction):
-    await ctx.send('https://images-ext-1.discordapp.net/external/OBPLGRvgM9BbzOFYV-GHXm9pbjjeXFYxR3IbQ73SYxo/https/media.tenor.com/2GXG2TIZ35MAAAPo/noryoz-owa-owa.mp4')
-
-
-
 
 
 """DISCORD SETUP"""
@@ -470,8 +563,6 @@ async def sync(ctx: discord.Interaction):
     await ctx.response.defer(ephemeral=True) 
     await bot.tree.sync(guild=discord.Object(id=DISCORD_GUILD_ID))
     await ctx.edit_original_response(content="Commands synced successfully!")
-
-#   DO NOT REMOVE
 
 # minimum necessary to start the bot
 async def basic_setup():
@@ -500,7 +591,7 @@ async def basic_setup():
         return 1
 
 # setup command for each server to setup the file system
-@bot.command(name="setup")# sets everything up for the bot
+@bot.command(name="setup")
 async def setup_dir(ctx: discord.integrations):
 
     if (not p.isdir(f"{CURRENT_CTF_DIR}{ctx.guild.id}")): # create server's dedicated dir in current
@@ -525,7 +616,6 @@ async def on_ready():
     await basic_setup()
     await bot.tree.sync()
     print(f'Logged in as {bot.user}')
-
 
 if CTFREI == '__GOATS__':
     bot.run(TOKEN)
