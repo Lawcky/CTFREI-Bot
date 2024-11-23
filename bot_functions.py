@@ -28,7 +28,7 @@ async def search_ctf_data(filename: str, query: str, WEIGHT_RANGE: int):
     with open(filename) as json_file:
         events = json.load(json_file)
 
-        if len(query) <= 2: # set as 2 or 5, if set as 2 you need to enter an integer to look for a list of CTFs, if 5 you could enter a float directlybut less easier for name searches 
+        if len(query) <= 2: # set as 2 for weight search via INT 
             try:
                 # Attempt to convert the query to a float
                 weight_query = float(query)
@@ -39,7 +39,6 @@ async def search_ctf_data(filename: str, query: str, WEIGHT_RANGE: int):
                 for event in events:
                     event_weight = float(event['weight'])  # Convert event weight to float
                     if min_weight <= event_weight <= max_weight:
-                        print(event)
                         match.append({
                             # event info
                             "title": event['title'],
@@ -184,29 +183,33 @@ async def send_event_info(event_info, id: int):
         # Event is over
         status_str = "Event is over"
 
-    # Set up the embedded message
-    color = discord.Color.dark_gold() if not id else discord.Color.blurple() # if id 0 then dark_gold, else blurple()
-    embeded_message = discord.Embed(
-        title=f"__{event_info['title']}__", 
-        url=event_info['url'],
-        description=f"Here are the information on {event_info['title']}.",
-        color=color
-    )
-    
-    embeded_message.set_author(name="CTF INFORMATION", url=event_info['ctftime_url'])
-    embeded_message.add_field(name="Weight", value=f"**{event_info['weight']}**", inline=True)
-    embeded_message.add_field(name="Onsite", value=f"**{event_info['onsite']}**", inline=True)
-    embeded_message.add_field(name="Format", value=f"**{event_info['format']}**", inline=True)
-    embeded_message.add_field(name="Start time", value=f"**{formatted_start_time}**", inline=True)
-    embeded_message.add_field(name="End time", value=f"**{formatted_end_time}**", inline=True)
-    embeded_message.add_field(name="Duration", value=f"**{duration_str}**", inline=True)
-    embeded_message.add_field(name="Status", value=f"**{status_str}**", inline=False)
-    if not event_info['logo']:
-        embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
-    else:
-        embeded_message.set_image(url=event_info['logo'])
 
-    return embeded_message
+    if id < 2: # case 0 =  first message format (/quickadd for exempl), case 2 = /info format  
+
+        # Set up the embedded message
+        color = discord.Color.dark_gold() if not id else discord.Color.blurple() # if id 0 then dark_gold, else blurple()
+        embeded_message = discord.Embed(
+            title=f"__{event_info['title']}__", 
+            url=event_info['url'],
+            description=f"Here are the information on {event_info['title']}.",
+            color=color
+        )
+        
+        embeded_message.set_author(name="CTF INFORMATION", url=event_info['ctftime_url'])
+        embeded_message.add_field(name="Weight", value=f"**{event_info['weight']}**", inline=True)
+        embeded_message.add_field(name="Onsite", value=f"**{event_info['onsite']}**", inline=True)
+        embeded_message.add_field(name="Format", value=f"**{event_info['format']}**", inline=True)
+        embeded_message.add_field(name="Start time", value=f"**{formatted_start_time}**", inline=True)
+        embeded_message.add_field(name="End time", value=f"**{formatted_end_time}**", inline=True)
+        embeded_message.add_field(name="Duration", value=f"**{duration_str}**", inline=True)
+        embeded_message.add_field(name="Status", value=f"**{status_str}**", inline=False)
+
+        embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
+        
+        if event_info['logo']:
+            embeded_message.set_thumbnail(url=event_info['logo'])
+
+        return embeded_message
 
 # make an api call on a url and retrieves all the data, then put it in a file.
 def api_call(url: str, filename: str):
