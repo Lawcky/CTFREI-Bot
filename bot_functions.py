@@ -211,6 +211,8 @@ async def send_event_info(event_info, id: int):
 
         return embeded_message
 
+
+
 # make an api call on a url and retrieves all the data, then put it in a file.
 def api_call(url: str, filename: str):
     try:
