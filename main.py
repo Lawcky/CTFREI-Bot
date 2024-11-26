@@ -34,10 +34,48 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="/", intents=intents)
 
 
+"""Interactions related functions"""
+
+INTERACTION_SAVE_FILE = conf['INTERACTION_SAVE_FILE']
+
+# Load data from Interaction files
+def load_persistent_data():
+    try:
+        with open(INTERACTION_SAVE_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# Save data to the file
+def save_persistent_data(data):
+    with open(INTERACTION_SAVE_FILE, "w") as f:
+        json.dump(data, f)
+
+persistent_data = load_persistent_data()
+
+class PersistentView(View):
+    def __init__(self, role):
+        super().__init__(timeout=None)
+        self.add_item(RoleButton(role))
+
+
+
 
 """EVENT REGISTRATION: FILE EDITING"""
 
 
+class RoleButton(Button):
+        def __init__(self, role):
+            super().__init__(label="🚩 Get to get the role & join The CTF!", style=discord.ButtonStyle.primary)
+            self.role = role
+
+        async def callback(self, interaction: discord.Interaction):
+            user = interaction.user
+            if self.role not in user.roles:
+                await user.add_roles(self.role)
+                await interaction.response.send_message(f"You have been added to the {self.role.name} role!", ephemeral=True)
+            else:
+                await interaction.response.send_message(f"You already have been asigned the {self.role.name} role!", ephemeral=True)
 
 # allow to add an event to the current events on a server, needs a role name (str) and a ctf name (that can be found using /search)
 @bot.tree.command(name="quickadd", description="Automatically registers a new event for the server (CTFTIME only).", guild=discord.Object(id=DISCORD_GUILD_ID))
@@ -49,10 +87,15 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
 
     try:
         category = get_category_by_id(guild=ctx.guild, category_id=CTF_CHANNEL_CATEGORY_ID[ctx.guild.name])
+        join_channel = await ctx.guild.fetch_channel(CTF_JOIN_CHANNEL[ctx.guild.name])
         CTF_EVENT = await search_ctf_data(filename=UPCOMING_CTFTIME_FILE, query=ctf_name, WEIGHT_RANGE=WEIGHT_RANGE)
         current_events = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
         role = get(ctx.guild.roles, name=role_name)
         ctfChannel = get_channel_by_name(ctx.guild, f"🚩-{role_name}")
+        
+        end_time = datetime.fromisoformat(CTF_EVENT[0]["finish"]).timestamp()
+        current = datetime.now().timestamp()
+        timeout_timer = end_time - current  # Calculate time remaining until end for interaction
     except ValueError:
         await ctx.response.send_message('Error retrieving data from the server. If this persists, please contact an admin.')
         return 1
@@ -89,6 +132,19 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
         return 1
 
 
+    """CREATE THE INTERACTION TO JOIN THE EVENT (click for role)"""
+
+    if timeout_timer < 0:
+        await ctx.response.send_message(f"Event seems to be already over ({CTF_EVENT["finish"][:10:]})\nif this is an error please contact admin.", ephemeral=True)
+        return None
+
+    # Create the button and view after the role is created
+    button = RoleButton(role)
+    view = View(timeout=timeout_timer)
+    view.add_item(button)
+
+
+
     """ALL THE CHECKS PASSED: CREATING ALL THE ROLES AND CHANNELS"""
 
 
@@ -99,29 +155,14 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
         await ctx.response.send_message("Error during the data creation. Please contact an admin if this persists.", ephemeral=True)
         return 1
 
-
-    """CREATE THE INTERACTION TO JOIN THE EVENT (click for role)"""
-
-
-    class RoleButton(Button):
-        def __init__(self, role):
-            super().__init__(label="🚩 Get to get the role & join The CTF!", style=discord.ButtonStyle.primary)
-            self.role = role
-
-        async def callback(self, interaction: discord.Interaction):
-            user = interaction.user
-            if self.role not in user.roles:
-                await user.add_roles(self.role)
-                await interaction.response.send_message(f"You have been added to the {self.role.name} role!", ephemeral=True)
-
-    # Create the button and view after the role is created
-    button = RoleButton(role)
-    view = View()
-    view.add_item(button)
-
     # Send the message with the button
     try:
-        join_message = await ctx.channel.send(f"{CTF_EVENT['title']} has been added to the current events here {private_channel.mention}", view=view)
+        join_message = await join_channel.send(f"{CTF_EVENT['title']} has been added to the current events here {private_channel.mention}", view=view)
+        message_link = f"https://discord.com/channels/{ctx.guild.id}/{CTF_JOIN_CHANNEL[ctx.guild.name]}/{join_message.id}" # will be linked in the response
+
+        persistent_data[str(join_message.id)] = {"role_id": role.id, "finish": CTF_EVENT['finish']} # to keep the interaction going
+        save_persistent_data(persistent_data)
+
     except ValueError:
         await ctx.response.send_message("Error creating the join message. Please contact an admin if this persists.", ephemeral=True)
         return 1
@@ -164,7 +205,7 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
 
 
     await private_channel.send(embed=(await send_event_info(event_info=event_info, id=0)))
-    await ctx.response.send_message("Event added successfully!", ephemeral=True)
+    await ctx.response.send_message(f"Event added successfully! join message is here : {message_link}", ephemeral=True)
     return None
 
 
@@ -370,6 +411,9 @@ async def search_registered_events(ctx: discord.Integration, event_id: str):
             with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}") as individual_event_file:
                 full_data = json.load(individual_event_file)
 
+    if not full_data:
+        await ctx.response.send_message(f"Could not find any event with id {event_id}. use /listevents to see all events.", ephemeral=True)
+        return None
 
 
 
@@ -446,9 +490,7 @@ async def get_more_info(ctx: discord.integrations):
         for event_file in event_list:
             if str(channel_id) in event_file:
                 with open(f"{CURRENT_CTF_DIR}{ctx.guild.id}/{event_file}", 'r') as data:
-                    data = json.load(data)
-                    event_data.append(data['title'])
-                    event_data.append(data['description'])
+                    event_data = json.load(data)
         if not event_data:
             await ctx.response.send_message(f"No event could be found for this channel. please make sure you use this command in a CTF channel. (/listevents)", ephemeral=True)
             return 1
@@ -456,7 +498,7 @@ async def get_more_info(ctx: discord.integrations):
         await ctx.response.send_message("Error retrieving the info.", ephemeral=True)
         return 1
     
-    await ctx.response.send_message(f"Here is the description of **{event_data[0]}**:\n{event_data[1]}", ephemeral=True)
+    await ctx.response.send_message(f"Here is the description of **{event_data['title']}**:\n{event_data['description']}", ephemeral=True)
     return None
 
 
@@ -467,6 +509,7 @@ async def event_democracy(ctx: discord.integrations, grade: Literal["Absolute Tr
     """retrieve the CTF data (and users_vote if existing)"""
 
     try:
+        data = {} # keep or will crash if no file found
         channel_id = ctx.channel.id # used for search
         event_list = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
         for event_file in event_list:
@@ -505,8 +548,8 @@ async def end_event(ctx: discord.integrations):
     """retrieve the data"""
 
     try:
+        full_file_path = "" # keep or will crash if no file found
         ARCHIVE_CATEGORY = conf['ARCHIVE_CATEGORY'][ctx.guild.name]
-
         channel_id = ctx.channel.id # used for search
         event_list = list_directory_contents(f"{CURRENT_CTF_DIR}{ctx.guild.id}")
         for event_file in event_list:
@@ -557,13 +600,6 @@ async def event_summary(ctx: discord.integrations):
 """DISCORD SETUP"""
 
 
-# sync commands with the given DISCORD_GUILD_ID
-@bot.tree.command(name="sync", description="commande pour sync les commandes (dev only)")
-async def sync(ctx: discord.Interaction):
-    await ctx.response.defer(ephemeral=True) 
-    await bot.tree.sync(guild=discord.Object(id=DISCORD_GUILD_ID))
-    await ctx.edit_original_response(content="Commands synced successfully!")
-
 # minimum necessary to start the bot
 async def basic_setup():
     try:
@@ -611,10 +647,69 @@ async def setup_dir(ctx: discord.integrations):
         print("something is not right")
         return 1
 
+
+async def refresh_interactions(DISCORD_GUILD_ID, Channel_id): # function to refresh all old interaction post restart
+    """Persistence of interactions."""
+    if persistent_data:
+        guild = bot.get_guild(DISCORD_GUILD_ID)  # The server to refresh
+        channel = guild.get_channel(Channel_id)  # The channel to refresh
+
+        if channel:
+            for message_id, data in list(persistent_data.items()):  # Iterate through a copy to allow modification
+                finish_date = data["finish"]  # Retrieve finish date
+                end_time = datetime.fromisoformat(finish_date).timestamp()
+                current = datetime.now().timestamp()
+                timeout_timer = end_time - current  # Calculate time remaining
+
+                # Check if the timeout has expired
+                if timeout_timer < 0:
+                    # Delete the expired message and remove its record
+                    try:
+                        message = await channel.fetch_message(int(message_id))
+                        await message.delete()
+                        print(f"Deleted expired message with ID {message_id}")
+                    except discord.NotFound:
+                        print(f"Message with ID {message_id} not found, skipping deletion.")
+                    
+                    # Remove from persistent_data and save changes
+                    del persistent_data[message_id]
+                    save_persistent_data(persistent_data)
+                    continue  # Skip further processing for this message
+                
+                # Refresh the message with the new timeout
+                try:
+                    message = await channel.fetch_message(int(message_id))
+                    role = discord.utils.get(channel.guild.roles, id=data["role_id"])
+                    if role:
+                        view = PersistentView(role)
+                        view.timeout = timeout_timer  # Set the remaining timeout
+                        await message.edit(view=view)  # Re-attach the view
+                        print(f"Refreshed view for message {message_id} with timeout {timeout_timer} seconds.")
+                except discord.NotFound:
+                    # Handle deleted messages gracefully
+                    print(f"Message with ID {message_id} not found during refresh.")
+                    del persistent_data[message_id]
+                    save_persistent_data(persistent_data)
+        else:
+            print("Channel not found.")
+    else:
+        print("No interaction to persist found.")
+
+# sync commands with the given DISCORD_GUILD_ID
+@bot.tree.command(name="sync", description="commande pour sync les commandes (dev only)")
+async def sync(ctx: discord.Interaction):
+    await ctx.response.defer(ephemeral=True) 
+    await bot.tree.sync(guild=discord.Object(id=DISCORD_GUILD_ID))
+    await refresh_interactions(ctx.guild.id, CTF_JOIN_CHANNEL[ctx.guild.name])
+    await ctx.edit_original_response(content="Commands & interactions synced successfully!")
+
 @bot.event
 async def on_ready():
     await basic_setup()
     await bot.tree.sync()
+    await refresh_interactions(DISCORD_GUILD_ID, CTF_JOIN_CHANNEL['Test-Bot-CTFREI']) # refresh all current interactions, and delete old join message
+    
+
     print(f'Logged in as {bot.user}')
 
 if CTFREI == '__GOATS__':
