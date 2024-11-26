@@ -1,7 +1,8 @@
 {
     "DISCORD_TOKEN": "",
     "DISCORD_GUILD_ID": ,  
-    
+    "INTERACTION_SAVE_FILE": "log/interation.json",
+
 
     "UPCOMING_CTFTIME_FILE": "log/api_event_data.json",
     "EVENT_LOG_FILE": "log/ctf_events.json",
