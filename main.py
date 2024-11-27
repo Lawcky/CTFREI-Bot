@@ -131,18 +131,11 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
         await ctx.response.send_message('Error checking data from the server. If this persists, please contact an admin.')
         return 1
 
-
-    """CREATE THE INTERACTION TO JOIN THE EVENT (click for role)"""
-
+    """Check if event is over (for interaction mostly)"""
+    
     if timeout_timer < 0:
-        await ctx.response.send_message(f"Event seems to be already over ({CTF_EVENT["finish"][:10:]})\nif this is an error please contact admin.", ephemeral=True)
+        await ctx.response.send_message(f"Event seems to be already over ({CTF_EVENT['finish'][:10:]})\nif this is an error please contact admin.", ephemeral=True)
         return None
-
-    # Create the button and view after the role is created
-    button = RoleButton(role)
-    view = View(timeout=timeout_timer)
-    view.add_item(button)
-
 
 
     """ALL THE CHECKS PASSED: CREATING ALL THE ROLES AND CHANNELS"""
@@ -151,6 +144,10 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
     try:
         role = await ctx.guild.create_role(name=role_name)
         private_channel = await create_private_channel(ctx.guild, category, role)
+        # Create the button and view after the role is created
+        button = RoleButton(role)
+        view = View(timeout=timeout_timer)
+        view.add_item(button)
     except ValueError:
         await ctx.response.send_message("Error during the data creation. Please contact an admin if this persists.", ephemeral=True)
         return 1
