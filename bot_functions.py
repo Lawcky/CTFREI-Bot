@@ -2,7 +2,7 @@ import requests
 import discord
 import json
 from datetime import datetime
-from os import path as p, mkdir, scandir
+from os import scandir
 import hashlib
 
 #generate md5 hash and keeps 8 char (used to have a unique ID on the Events to avoid dupplicates)
@@ -23,12 +23,12 @@ def list_directory_contents(directory: str):
 
 #look inside the Json data files for match
 async def search_ctf_data(filename: str, query: str, WEIGHT_RANGE: int):
-    
+
     match = [] # array of match
     with open(filename) as json_file:
         events = json.load(json_file)
 
-        if len(query) <= 2: # set as 2 for weight search via INT 
+        if len(query) <= 2: # set as 2 for weight search via INT
             try:
                 # Attempt to convert the query to a float
                 weight_query = float(query)
@@ -55,7 +55,7 @@ async def search_ctf_data(filename: str, query: str, WEIGHT_RANGE: int):
                             "onsite": event['onsite'],
                         })
             except ValueError:
-                print(f"no result found: {query}") 
+                print(f"no result found: {query}")
 
         else:
             for event in events:
@@ -80,7 +80,7 @@ async def search_ctf_data(filename: str, query: str, WEIGHT_RANGE: int):
 
 # Create a private text channel in the specified category for the role
 async def create_private_channel(guild: discord.guild, category: discord.CategoryChannel, role: discord.Role):
-    
+
     CTFREI_role = discord.utils.get(guild.roles, name="CTFREI")  # Get the CTFREI role to make sure the bot can access the channel
 
     overwrites = {
@@ -104,7 +104,7 @@ async def reply_message(ctx: discord.integrations, channel: discord.TextChannel,
         message = await channel.fetch_message(message_id)
         await message.reply(response)
         return 1
-    
+
     except discord.NotFound:
         await ctx.send("Error finding the actual message")
         return None
@@ -117,7 +117,7 @@ async def reply_message(ctx: discord.integrations, channel: discord.TextChannel,
 
 # Retrieve a discord.Category based on the settings' ID (to make sure channels are not created anywhere)
 def get_category_by_id(guild: discord.Guild, category_id: int):
-    
+
     for category in guild.categories:
         if category.id == category_id:
             return category
@@ -142,7 +142,7 @@ async def search_event_data_by_role(filename: str, role: str):
 
     return None
 
-# creates & returns an embedded message based on the event_info given (in the format of ctf_events.json), the integer is to differenciate the color/format. 
+# creates & returns an embedded message based on the event_info given (in the format of ctf_events.json), the integer is to differenciate the color/format.
 async def send_event_info(event_info, id: int):
 
     # Retrieve start, finish, and duration from event_info
@@ -153,65 +153,54 @@ async def send_event_info(event_info, id: int):
     duration_str = f"{duration_days * 24 + duration_hours} hours"
 
     # Format the start and end time as 'days-month-year hrs:minutes'
-    formatted_start_time = start_time.strftime('%d-%m-%Y %H:%M')
-    formatted_end_time = end_time.strftime('%d-%m-%Y %H:%M')
     start = start_time.timestamp()
     end = end_time.timestamp()
     current = datetime.now().timestamp()
-     
-    # Print times for reference
-    # print(f"Current Time: {datetime.now().strftime('%d-%m-%Y %H:%M')}")
-    # print(f"Start Time: {formatted_start_time}")
-    # print(f"End Time: {formatted_end_time}")
 
     # Calculate event status based on the current time
     if current < start:
-        # Event hasn't started yet, calculate time until start
-        time_until_start = start - current
-        hours_until_start = time_until_start// 3600
-        minutes_until_start = (time_until_start % 3600) // 60
-        status_str = f"Starts in {int(hours_until_start)} hours and {int(minutes_until_start)} minutes"
+        # Event hasn't started yet, shows the time before starts
+        status_str = f"Start <t:{int(start)}:R>"
 
     elif start <= current < end:
-        # Event has started, calculate time left until it ends
-        time_left = end - current
-        hours_left = time_left // 3600
-        minutes_left = (time_left % 3600) // 60
-        status_str = f"{int(hours_left)}hrs & {int(minutes_left)}min left"
+        # Event has started, display relative time before ends
+        status_str = f"Ends <t:{int(end)}:R>"
 
     else:
         # Event is over
         status_str = "Event is over"
 
 
-    if id < 2: # case 0 =  first message format (/quickadd for exempl), case 2 = /info format  
+    if id < 2: # case 0 =  first message format (/quickadd for exempl), case 2 = /info format
 
         # Set up the embedded message
         color = discord.Color.dark_gold() if not id else discord.Color.blurple() # if id 0 then dark_gold, else blurple()
         embeded_message = discord.Embed(
-            title=f"__{event_info['title']}__", 
+            title=f"__{event_info['title']}__",
             url=event_info['url'],
-            description=f"Here are the information on {event_info['title']}.",
+            description=f"Here are the information on **{event_info['title']}**.",
             color=color
         )
-        
-        embeded_message.set_author(name="CTF INFORMATION", url=event_info['ctftime_url'])
+
+        embeded_message.set_author(name="CTF INFORMATION (CTFTIME)", url=event_info['ctftime_url'],icon_url="https://www.efrei.fr/wp-content/uploads/2024/07/ctefrei.png")
         embeded_message.add_field(name="Weight", value=f"**{event_info['weight']}**", inline=True)
-        embeded_message.add_field(name="Onsite", value=f"**{event_info['onsite']}**", inline=True)
-        embeded_message.add_field(name="Format", value=f"**{event_info['format']}**", inline=True)
-        embeded_message.add_field(name="Start time", value=f"**{formatted_start_time}**", inline=True)
-        embeded_message.add_field(name="End time", value=f"**{formatted_end_time}**", inline=True)
-        embeded_message.add_field(name="Duration", value=f"**{duration_str}**", inline=True)
-        embeded_message.add_field(name="Status", value=f"**{status_str}**", inline=False)
+        embeded_message.add_field(name="Onsite", value=f"{event_info['onsite']}", inline=True)
+        embeded_message.add_field(name="Format", value=f"{event_info['format']}", inline=True)
+        embeded_message.add_field(name="Start time", value=f"<t:{int(start)}>", inline=True)
+        embeded_message.add_field(name="End time", value=f"<t:{int(end)}>", inline=True)
+        embeded_message.add_field(name="Duration", value=f"{duration_str}", inline=True)
+        embeded_message.add_field(name="Status", value=f"{status_str}", inline=False)
 
         embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
-        
+
         if event_info['logo']:
             embeded_message.set_thumbnail(url=event_info['logo'])
 
         return embeded_message
 
-
+async def log(ctx: discord.integrations, logs: str):
+    with open("log/commands.log", 'a') as log:
+        log.write(f"{ctx.guild.name}: user:{ctx.user.name} ({ctx.user.id}): {logs}")
 
 # make an api call on a url and retrieves all the data, then put it in a file.
 def api_call(url: str, filename: str):
@@ -228,7 +217,7 @@ def api_call(url: str, filename: str):
         if response.status_code != 200:
             print(f"Failed to retrieve content: {response.status_code}")
             return None
-            
+
         data = response.json()
 
         #print(data)
@@ -236,7 +225,7 @@ def api_call(url: str, filename: str):
              json.dump(data, fp, indent=4)
 
         print(f"{url} data has been saved to {filename}")
-        
+
         return data
 
 
