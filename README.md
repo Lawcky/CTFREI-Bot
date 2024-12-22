@@ -67,6 +67,15 @@ Many restrictions are in place here to avoid dupplicate events, role already exi
 
 <img src="https://github.com/user-attachments/assets/cc3dee34-04de-4b50-8c13-cac9dbec00a3" height=125>
 
+## Other commands
+
+`/refresh`
+
+`/sync`
+
+`/help [CTFREI command]`
+
+
 `/vote` : This command allow everyone with access to the channel to give their opinion (from 1 to 4) about the event, you can only vote once since a new vote will overwrite past votes.
 (side note: for now voting is pretty much useless since no commands uses the output, so for now it is only for data inside the event files for the person hosting)
 
