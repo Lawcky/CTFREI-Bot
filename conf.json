@@ -3,7 +3,6 @@
     "DISCORD_GUILD_ID": ,  
     "INTERACTION_SAVE_FILE": "log/interation.json",
 
-
     "UPCOMING_CTFTIME_FILE": "log/api_event_data.json",
     "EVENT_LOG_FILE": "log/ctf_events.json",
     "CURRENT_CTF_DIR": "log/current/",
@@ -13,14 +12,20 @@
     "MAX_EVENT_LIMIT": 10,
 
     "CTF_CHANNEL_CATEGORY_ID": { 
-        "Server Name": ,
+        "Serveur NAME": 0
     },
 
     "CTF_JOIN_CHANNEL" : {
-        "Server Name": ,
+        "Serveur NAME": 0
+    },
+
+    "CTF_ANNOUNCE_CHANNEL" : {
+        "Serveur NAME": {"channel_id":0, "role_id":0}
     },
 
     "ARCHIVE_CATEGORY": {
-        "Server Name": ,
+        "Serveur NAME": 0
     }
+
+
 }
