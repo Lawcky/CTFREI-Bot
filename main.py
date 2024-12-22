@@ -372,7 +372,7 @@ async def list_registered_events(ctx: discord.Integration):
         for individual_event in events_data:
             event_chan = ctx.guild.get_channel(individual_event[4])
             message_link = f"https://discord.com/channels/{ctx.guild.id}/{CTF_JOIN_CHANNEL[ctx.guild.name]}/{individual_event[5]}"
-            event_info = f"Weight: {individual_event[1]} | start: {individual_event[2]} | Event ID: `{individual_event[7]}` | channel: {event_chan.mention} | {message_link}" # format for the output of the Currently registered CTF
+            event_info = f"Weight: {individual_event[1]} | starts: <t:{int((datetime.fromisoformat(individual_event[2])).timestamp())}> | Event ID: `{individual_event[7]}` | channel: {event_chan.mention} | {message_link}" # format for the output of the Currently registered CTF
             embeded_message.add_field(name=individual_event[0], value=event_info, inline=False)
     except ValueError:
         await ctx.response.send_message('error using data.', ephemeral=True)
@@ -497,10 +497,10 @@ async def search_registered_events(ctx: discord.Integration, event_id: str):
 
     embeded_message.set_author(name="CTF INFORMATION", url=full_data['url'], icon_url=author_icon)
     embeded_message.add_field(name="Weight", value=f"**{full_data['weight']}**", inline=True)
-    embeded_message.add_field(name="Starts:", value=f"**{full_data['start'][:10:]}**", inline=True)
-    embeded_message.add_field(name="Ends:", value=f"**{full_data['finish'][:10:]}**", inline=True)
-    embeded_message.add_field(name="Joining:", value=f"**{message_link}**", inline=True)
-    embeded_message.add_field(name="CTF link:", value=f"**{full_data['url']}**", inline=True)
+    embeded_message.add_field(name="Starts:", value=f"<t:{int((datetime.fromisoformat(full_data['start'])).timestamp())}>", inline=True)
+    embeded_message.add_field(name="Ends:", value=f"<t:{int((datetime.fromisoformat(full_data['start'])).timestamp())}>", inline=True)
+    embeded_message.add_field(name="Joining:", value=f"{message_link}", inline=True)
+    embeded_message.add_field(name="CTF link:", value=f"{full_data['url']}", inline=False)
 
     ctfrei_logo = "https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&"
 
