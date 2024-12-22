@@ -14,7 +14,7 @@ To setup the bot its pretty simple, most of the changes must be done inside of t
 
 first download the git : 
 
-```git clone ```
+```git clone https://github.com/Lawcky/CTFREI-Bot.git```
 
 add a discord bot token in conf.json (you can create the token [here](https://discord.com/developers/applications)
 
@@ -56,3 +56,22 @@ Many restrictions are in place here to avoid dupplicate events, role already exi
 `/registered_search [event id]` : This command will give you informations about a registered event on the server (without needing to be participating), it uses the event id given by `/listevents`
 
 <img src="https://github.com/user-attachments/assets/b027092d-77f6-4482-beea-45a3bc8cd8fc" height=250>
+
+## CTF Commands (can be ran only inside channels created by the bot)
+
+`/info` : This will print out some informations on the event. (this message is sent by default inside the channel when it is created by `/quickadd`)
+
+<img src="https://github.com/user-attachments/assets/717bba4e-558e-4f13-8f16-eae91287419e" height=250>
+
+`/description` : Well... pretty straightforward, will give you the description of the ctf event
+
+<img src="https://github.com/user-attachments/assets/cc3dee34-04de-4b50-8c13-cac9dbec00a3" height=125>
+
+`/vote` : This command allow everyone with access to the channel to give their opinion (from 1 to 4) about the event, you can only vote once since a new vote will overwrite past votes.
+(side note: for now voting is pretty much useless since no commands uses the output, so for now it is only for data inside the event files for the person hosting)
+
+<img src="" height=250>
+
+`/end` : Once the CTF is over you can run this command, it'll archive the channel, remove the event from the currently running ones (for `/listevents`) and later will also delete the related role to avoid flooding (not implemented yet)
+
+![image](https://github.com/user-attachments/assets/c0fa75fb-ad7b-4d00-9e28-a6b5c1c3045d)
