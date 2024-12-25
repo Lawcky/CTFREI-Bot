@@ -63,7 +63,18 @@ class PersistentView(View):
         super().__init__(timeout=None)
         self.add_item(RoleButton(role))
 
+class RoleButton(Button):
+        def __init__(self, role):
+            super().__init__(label="🚩 Get to get the role & join The CTF!", style=discord.ButtonStyle.primary)
+            self.role = role
 
+        async def callback(self, interaction: discord.Interaction):
+            user = interaction.user
+            if self.role not in user.roles:
+                await user.add_roles(self.role)
+                await interaction.response.send_message(f"You have been added to the {self.role.name} role!", ephemeral=True)
+            else:
+                await interaction.response.send_message(f"You already have been asigned the {self.role.name} role!", ephemeral=True)
 
 @bot.tree.command(name="test", description="dev testing command", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def bordel(ctx):
@@ -253,11 +264,11 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
     embeded_message = discord.Embed(
         title=f"__{event_info['title']}__",
         # description=f"Hello {announce_role.mention} ! <:xxxxxxd:1312187847217909770>\nRegistrations are open for **{event_info['title']}** !",
-        description=f"Salut {announce_role.mention} ! <:xxxxxxd:1312187847217909770>\n **{event_info['title']}** été ajouté sur le serveur ! \n\nRécupérez le rôle {role.mention} pour avoir accès au salon dédié.", # french version (cocorico)
+        description=f"Salut {announce_role.mention} ! <:xxxxxxd:1312187847217909770>\n **{event_info['title']}** à été ajouté sur le serveur ! \n\nRécupérez le rôle {role.mention} pour avoir accès au salon dédié.", # french version (cocorico)
         color=color
     )
 
-    embeded_message.set_author(name="CTFEI BOT",icon_url="https://www.efrei.fr/wp-content/uploads/2024/07/ctefrei.png")
+    embeded_message.set_author(name="CTFREI BOT",icon_url="https://www.efrei.fr/wp-content/uploads/2024/07/ctefrei.png")
 
     embeded_message.add_field(name="**Informations:**", value=f":date: Du <t:{int((datetime.fromisoformat(event_info['start'])).timestamp())}> au <t:{int((datetime.fromisoformat(event_info['finish'])).timestamp())}>\n:alarm_clock: dure {duration} heures au total\n:man_lifting_weights: Weight estimé {event_info['weight'] if int(event_info['weight']) != 0 else 'inconnu'}", inline=True)
 
@@ -449,7 +460,7 @@ async def search_json(ctx: discord.Interaction, query: str = None):
         count = 0 # to limit output (avoid discord limit related crashes)
         for event in matches:
             if count < 12:
-                event_info = f"Weight: {event['weight']} | {event['format']} | Starts: <t:{int((datetime.fromisoformat(event['start'])).timestamp())}> => [CTFTIME]({event['url']})\n"
+                event_info = f"Weight: {event['weight']} | {event['format']} | Starts: <t:{int((datetime.fromisoformat(event['start'])).timestamp())}> => [CTFTIME]({event['ctftime_url']})\n"
                 count += 1
                 embeded_message.add_field(name=f"**__{event['title']}__**", value=event_info, inline=False)
             else:
@@ -497,10 +508,11 @@ async def search_registered_events(ctx: discord.Integration, event_id: str):
 
     embeded_message.set_author(name="CTF INFORMATION", url=full_data['url'], icon_url=author_icon)
     embeded_message.add_field(name="Weight", value=f"**{full_data['weight']}**", inline=True)
-    embeded_message.add_field(name="Starts:", value=f"<t:{int((datetime.fromisoformat(full_data['start'])).timestamp())}>", inline=True)
+    embeded_message.add_field(name="Get the role here:", value=f"{message_link}", inline=True)
+    embeded_message.add_field(name="Starts:", value=f"<t:{int((datetime.fromisoformat(full_data['start'])).timestamp())}>", inline=False)
     embeded_message.add_field(name="Ends:", value=f"<t:{int((datetime.fromisoformat(full_data['start'])).timestamp())}>", inline=True)
-    embeded_message.add_field(name="Joining:", value=f"{message_link}", inline=True)
-    embeded_message.add_field(name="CTF link:", value=f"{full_data['url']}", inline=False)
+    embeded_message.add_field(name="CTF links:", value=f"[CTFd]({full_data['url']})\n[CTFTIME]({full_data['ctftime_url']})", inline=False)
+
 
     ctfrei_logo = "https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&"
 
