@@ -239,6 +239,7 @@ async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf
             "description": CTF_EVENT['description'],
             "onsite": CTF_EVENT['onsite'],
             "role_name": role.name,
+            "role_id": role.id,
             "event_id": event_id,
             "users_vote": {},
             "channelID": private_channel.id,
