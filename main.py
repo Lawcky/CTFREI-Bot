@@ -645,7 +645,10 @@ async def end_event(ctx: discord.integrations):
         rename(full_file_path, f"{PAST_CTF_DIR}{ctx.guild.id}/{event_file}_{int(time.time())}")
 
         archive_category = get(ctx.guild.categories, id=ARCHIVE_CATEGORY)
-        await ctx.channel.edit(category=archive_category)
+        await ctx.channel.edit(category=archive_category, sync_permissions=True)
+        role = ctx.guild.get_role(data['role_id'])
+        if role:
+            await role.delete()
         await log(ctx, f"EDIT: Ended event for {data['title']}\n")
         await ctx.response.send_message("CTF was ended successfully.")
         return None
