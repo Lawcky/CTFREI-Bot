@@ -186,10 +186,11 @@ async def send_event_info(event_info, id: int):
         embeded_message.add_field(name="Weight", value=f"**{event_info['weight']}**", inline=True)
         embeded_message.add_field(name="Onsite", value=f"{event_info['onsite']}", inline=True)
         embeded_message.add_field(name="Format", value=f"{event_info['format']}", inline=True)
-        embeded_message.add_field(name="Start time", value=f"<t:{int(start)}>", inline=True)
-        embeded_message.add_field(name="End time", value=f"<t:{int(end)}>", inline=True)
+        embeded_message.add_field(name="Start time", value=f"<t:{int(start)}:F>", inline=True)
+        embeded_message.add_field(name="End time", value=f"<t:{int(end)}:F>", inline=True)
         embeded_message.add_field(name="Duration", value=f"{duration_str}", inline=True)
-        embeded_message.add_field(name="Status", value=f"{status_str}", inline=False)
+        embeded_message.add_field(name="Status", value=f"{status_str}", inline=True)
+        embeded_message.add_field(name="URI", value=f"[CTFd]({event_info['url']})", inline=True)
 
         embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
 
