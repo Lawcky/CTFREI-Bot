@@ -30,7 +30,7 @@ once everything is setup you can run `/sync` on the server and start using comma
 
 ## DevPod
 
-<a href="https://devpod.sh/open#https://github.com/loft-sh/devpod-example-go"><img src="https://camo.githubusercontent.com/8ba20cf8d294f8faa1859e1940f591333280802bfdc79accb6d1cfd5e54f1347/68747470733a2f2f646576706f642e73682f6173736574732f6f70656e2d696e2d646576706f642e737667" alt="Open in DevPod!" data-canonical-src="https://devpod.sh/assets/open-in-devpod.svg" style="max-width: 100%;"></a>
+<a href="https://devpod.sh/open#https://github.com/Lawcky/CTFREI-Bot"><img src="https://camo.githubusercontent.com/8ba20cf8d294f8faa1859e1940f591333280802bfdc79accb6d1cfd5e54f1347/68747470733a2f2f646576706f642e73682f6173736574732f6f70656e2d696e2d646576706f642e737667" alt="Open in DevPod!" data-canonical-src="https://devpod.sh/assets/open-in-devpod.svg" style="max-width: 100%;"></a>
 
 # Commands
 
