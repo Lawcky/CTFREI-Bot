@@ -76,66 +76,6 @@ class RoleButton(Button):
             else:
                 await interaction.response.send_message(f"You already have been asigned the {self.role.name} role!", ephemeral=True)
 
-@bot.tree.command(name="test", description="dev testing command", guild=discord.Object(id=DISCORD_GUILD_ID))
-async def bordel(ctx):
-    """ICI LES TRUCS A RAJOUTER"""
-
-
-    event_info = {
-        "title": "NOM_DU_CTF",
-        "weight": 25.0,
-        "url": "https://ctf.hackthebox.com/event/details/university-ctf-2024-binary-badlands-1822",
-        "ctftime_url": "https://ctftime.org/event/2539/",
-        "start": "2024-12-13T13:00:00+00:00",
-        "finish": "2024-12-15T21:00:00+00:00",
-        "duration": {
-            "hours": 8,
-            "days": 2
-        },
-        "format": "Jeopardy",
-        "location": "",
-        "logo": "https://ctftime.org//media/events/htbctf-logo_1.png",
-        "onsite": False,
-        "role_name": "htb_uni_2024",
-        "event_id": "3fce356f",
-        "users_vote": {},
-        "channelID": 1313948527554199575,
-        "join_message_id": 1313948528623751271
-    }
-
-
-    """SEND THE ANNOUNCEMENT"""
-    announce_data = CTF_ANNOUNCE_CHANNEL[ctx.guild.name]
-    announce_channel = await ctx.guild.fetch_channel(announce_data['channel_id'])
-    announce_role = discord.utils.get(ctx.guild.roles, id=announce_data["role_id"])
-    duration = (int(event_info['duration']['days'])*24) + (event_info['duration']['hours'])
-
-    # Set up the embedded message
-    color = discord.Color.red()
-    embeded_message = discord.Embed(
-        title=f"__{event_info['title']}__",
-        # description=f"Hello {announce_role.mention} ! <:xxxxxxd:1312187847217909770>\nRegistrations are open for **{event_info['title']}** !",
-        description="Salut {announce_role.mention} ! <:xxxxxxd:1312187847217909770>\n **{event_info['title']}** été ajouté sur le serveur ! \n\nRécupérez le rôle {role.mention} pour avoir accès au salon dédié.", # french version (cocorico)
-        color=color
-    )
-
-    embeded_message.set_author(name="CTFEI BOT",icon_url="https://www.efrei.fr/wp-content/uploads/2024/07/ctefrei.png")
-
-    embeded_message.add_field(name="**Informations:**", value=f":date: Du <t:{int((datetime.fromisoformat(event_info['start'])).timestamp())}> au <t:{int((datetime.fromisoformat(event_info['finish'])).timestamp())}>\n:alarm_clock: dure {duration} heures au total\n:man_lifting_weights: Weight estimé {event_info['weight'] if int(event_info['weight']) != 0 else 'inconnu'}", inline=True)
-
-    embeded_message.add_field(name="**URI links:**", value=f"<:ctftime:1320354001287647264> [CTFTIME]({event_info['ctftime_url']})\n<:site:1320352422056693821> [CTFd]({event_info['url']})\n", inline=False)
-
-    embeded_message.add_field(name="**Channel & role:**", value="<:logo_ctfrei:1167954970889441300> {message_link}", inline=False)
-
-    embeded_message.set_image(url="https://cdn.discordapp.com/attachments/1167256768087343256/1202189774836731934/CTFREI_Banniere_920_x_240_px_1.png?ex=67162479&is=6714d2f9&hm=c649d21b2152c0200b9466a29c09a04865387410258c1c228c8df58db111c539&")
-
-    if event_info['logo']:
-        embeded_message.set_thumbnail(url=event_info['logo'])
-
-    await ctx.response.send_message(embed=embeded_message, ephemeral=True)
-
-
-
 
 @bot.tree.command(name="quickadd", description="Automatically registers a new event for the server (CTFTIME only).", guild=discord.Object(id=DISCORD_GUILD_ID))
 async def add_reaction_and_channel(ctx: discord.Interaction, role_name: str, ctf_name: str):
